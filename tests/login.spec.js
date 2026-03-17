@@ -9,6 +9,9 @@ const demoUser = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.REGAS_SUPABASE = { enabled: false };
+  });
   await page.goto('/index.html');
   await page.evaluate(() => {
     localStorage.clear();
