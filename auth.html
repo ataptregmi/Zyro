@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login | RetroGamingSphere</title>
+    <title>Login | Play Portal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@
       <nav class="nav">
         <a class="brand" href="index.html">
           <span class="brand-mark">R</span>
-          <span class="brand-text">RetroGamingSphere</span>
+          <span class="brand-text">Play Portal</span>
           <span class="brand-tag">REGAS</span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
@@ -39,7 +39,7 @@
     </header>
 
     <main class="page auth-page">
-      <section class="auth-card" id="login">
+      <section class="auth-card" id="login" data-auth-card>
         <div class="auth-header">
           <p class="eyebrow">Welcome back</p>
           <h1>Log in to REGAS</h1>
@@ -52,7 +52,10 @@
           </label>
           <label for="login-password">
             Password
-            <input id="login-password" name="password" type="password" placeholder="********" autocomplete="current-password" required />
+            <div class="password-field">
+              <input id="login-password" name="password" type="password" placeholder="********" autocomplete="current-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="login-password">Show</button>
+            </div>
           </label>
           <label class="auth-checkbox" for="login-remember">
             <input id="login-remember" name="remember" type="checkbox" />
@@ -66,11 +69,11 @@
           New here? <a class="inline-link" href="#signup">Create an account</a>.
         </p>
         <p class="form-note">
-          Forgot password? <a class="inline-link" href="#" data-auth-action="reset">Reset it</a>.
+          Forgot password? <a class="inline-link" href="#reset">Reset it</a>.
         </p>
       </section>
 
-      <section class="auth-card" id="signup">
+      <section class="auth-card is-hidden" id="signup" data-auth-card>
         <div class="auth-header">
           <p class="eyebrow">Join the squad</p>
           <h1>Create your REGAS ID</h1>
@@ -91,12 +94,23 @@
           </label>
           <label for="signup-password">
             Password
-            <input id="signup-password" name="password" type="password" placeholder="Minimum 6 characters" autocomplete="new-password" required />
+            <div class="password-field">
+              <input id="signup-password" name="password" type="password" placeholder="Minimum 6 characters" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="signup-password">Show</button>
+            </div>
           </label>
+          <div class="strength-meter" data-strength-for="signup-password">
+            <div class="strength-bar" data-strength-bar></div>
+          </div>
+          <p class="form-note" data-strength-text>Strength: --</p>
           <label for="signup-confirm">
             Confirm password
-            <input id="signup-confirm" name="confirm" type="password" placeholder="Repeat password" autocomplete="new-password" required />
+            <div class="password-field">
+              <input id="signup-confirm" name="confirm" type="password" placeholder="Repeat password" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="signup-confirm">Show</button>
+            </div>
           </label>
+          <div class="form-message" data-handle-status aria-live="polite"></div>
           <div class="form-message" data-auth-message="signup" aria-live="polite"></div>
           <button type="submit" class="btn btn-gradient">Create account</button>
         </form>
@@ -107,11 +121,54 @@
           By continuing you agree to the REGAS community guidelines.
         </p>
       </section>
+
+      <section class="auth-card is-hidden" id="reset" data-auth-card data-reset-card>
+        <div class="auth-header">
+          <p class="eyebrow">Account rescue</p>
+          <h1>Reset your password</h1>
+          <p class="hero-subtitle">We will email you a secure reset link.</p>
+        </div>
+        <form class="auth-form" data-auth-form="reset-request">
+          <label for="reset-email">
+            Email
+            <input id="reset-email" name="email" type="email" placeholder="you@regas.gg" autocomplete="email" required />
+          </label>
+          <div class="form-message" data-auth-message="reset" aria-live="polite"></div>
+          <button type="submit" class="btn btn-gradient">Send reset link</button>
+        </form>
+
+        <form class="auth-form is-hidden" data-auth-form="reset-confirm">
+          <label for="reset-new-password">
+            New password
+            <div class="password-field">
+              <input id="reset-new-password" name="password" type="password" placeholder="New password" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="reset-new-password">Show</button>
+            </div>
+          </label>
+          <div class="strength-meter" data-strength-for="reset-new-password">
+            <div class="strength-bar" data-strength-bar></div>
+          </div>
+          <p class="form-note" data-strength-text>Strength: --</p>
+          <label for="reset-confirm-password">
+            Confirm password
+            <div class="password-field">
+              <input id="reset-confirm-password" name="confirm" type="password" placeholder="Repeat password" autocomplete="new-password" required />
+              <button class="password-toggle" type="button" data-toggle-password="reset-confirm-password">Show</button>
+            </div>
+          </label>
+          <div class="form-message" data-auth-message="reset-confirm" aria-live="polite"></div>
+          <button type="submit" class="btn btn-gradient">Update password</button>
+        </form>
+
+        <p class="form-note">
+          Remembered your password? <a class="inline-link" href="#login">Log in</a>.
+        </p>
+      </section>
     </main>
 
     <footer class="site-footer">
       <div>
-        <h3>RetroGamingSphere</h3>
+        <h3>Play Portal</h3>
         <p>All-in-One Platform for Gamers</p>
       </div>
       <div class="footer-links">
@@ -124,12 +181,16 @@
     </footer>
 
     <script>
-      window.REGAS_SUPABASE = {
-        url: "https://mwxcwwsyuofcxdranrdy.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13eGN3d3N5dW9mY3hkcmFucmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MTQ0MjEsImV4cCI6MjA4OTI5MDQyMX0.ZrAYdzDPQLQAN_1TNIosP_qnlaWPyK7ouC9iRR-6qM0",
-      };
+      if (!window.REGAS_SUPABASE) {
+        window.REGAS_SUPABASE = {
+          url: "https://mwxcwwsyuofcxdranrdy.supabase.co",
+          anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13eGN3d3N5dW9mY3hkcmFucmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MTQ0MjEsImV4cCI6MjA4OTI5MDQyMX0.ZrAYdzDPQLQAN_1TNIosP_qnlaWPyK7ouC9iRR-6qM0",
+        };
+      }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
   </body>
 </html>
+
+

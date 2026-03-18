@@ -89,6 +89,121 @@ const setMessage = (scope, message, type = "info") => {
   if (type === "success") target.classList.add("success");
 };
 
+const setHandleMessage = (message, type = "info") => {
+  const target = document.querySelector("[data-handle-status]");
+  if (!target) return;
+  target.textContent = message;
+  target.classList.remove("error", "success");
+  if (type === "error") target.classList.add("error");
+  if (type === "success") target.classList.add("success");
+};
+
+const showAuthCard = (targetId) => {
+  const cards = document.querySelectorAll("[data-auth-card]");
+  if (cards.length === 0) return;
+  const fallback = "login";
+  const activeId = targetId || fallback;
+  cards.forEach((card) => {
+    const isActive = card.id === activeId;
+    card.classList.toggle("is-hidden", !isActive);
+  });
+};
+
+const getAuthTargetFromHash = () => {
+  const hash = window.location.hash.replace("#", "");
+  if (hash === "signup" || hash === "reset" || hash === "login") {
+    return hash;
+  }
+  return "login";
+};
+
+const toggleResetMode = (mode) => {
+  const requestForm = document.querySelector('[data-auth-form="reset-request"]');
+  const confirmForm = document.querySelector('[data-auth-form="reset-confirm"]');
+  if (!requestForm || !confirmForm) return;
+  if (mode === "confirm") {
+    requestForm.classList.add("is-hidden");
+    confirmForm.classList.remove("is-hidden");
+  } else {
+    requestForm.classList.remove("is-hidden");
+    confirmForm.classList.add("is-hidden");
+  }
+};
+
+const assessStrength = (value) => {
+  const length = value.length;
+  let score = 0;
+  if (length >= 6) score += 1;
+  if (length >= 10) score += 1;
+  if (/[A-Z]/.test(value)) score += 1;
+  if (/[0-9]/.test(value)) score += 1;
+  if (/[^A-Za-z0-9]/.test(value)) score += 1;
+
+  const labels = ["Very weak", "Weak", "Okay", "Good", "Strong", "Excellent"];
+  return {
+    score,
+    label: labels[score] || "Weak",
+    percent: Math.min(100, (score / 5) * 100),
+  };
+};
+
+const wireStrengthMeter = (input) => {
+  if (!input) return;
+  const wrapper = input.closest("label")?.parentElement;
+  if (!wrapper) return;
+  const meter = wrapper.querySelector(`[data-strength-for="${input.id}"]`);
+  const bar = meter?.querySelector("[data-strength-bar]");
+  const text = wrapper.querySelector("[data-strength-text]");
+  if (!meter || !bar || !text) return;
+
+  const update = () => {
+    const { score, label, percent } = assessStrength(input.value);
+    bar.style.width = `${percent}%`;
+    if (score <= 1) bar.style.background = "#ff8a80";
+    else if (score <= 3) bar.style.background = "#ffd180";
+    else bar.style.background = "#b9f6ca";
+    text.textContent = `Strength: ${label}`;
+  };
+
+  input.addEventListener("input", update);
+  update();
+};
+
+const wirePasswordToggles = () => {
+  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.getAttribute("data-toggle-password");
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const isPassword = input.type === "password";
+      input.type = isPassword ? "text" : "password";
+      button.textContent = isPassword ? "Hide" : "Show";
+    });
+  });
+};
+
+const checkHandleAvailability = async (handle) => {
+  if (!handle) return { available: false, reason: "Enter a gamer tag first." };
+  const normalized = handle.toLowerCase();
+  if (supabaseEnabled) {
+    const sb = getSupabaseClient();
+    const { data, error } = await sb
+      .from("profiles")
+      .select("handle")
+      .ilike("handle", normalized)
+      .limit(1);
+
+    if (error) {
+      return { available: true, reason: "" };
+    }
+    return { available: data.length === 0, reason: "That gamer tag is taken." };
+  }
+
+  const users = getUsers();
+  const taken = users.some((item) => item.handle.toLowerCase() === normalized);
+  return { available: !taken, reason: "That gamer tag is taken." };
+};
+
 const supabaseConfig = window.REGAS_SUPABASE || {};
 const supabaseEnabled =
   supabaseConfig.enabled !== false &&
@@ -236,10 +351,21 @@ const initAuth = async () => {
   const requiresAuth = document.body && document.body.dataset.requiresAuth === "true";
   const isProfile = document.body && document.body.dataset.page === "profile";
 
+  showAuthCard(getAuthTargetFromHash());
+  window.addEventListener("hashchange", () => {
+    showAuthCard(getAuthTargetFromHash());
+  });
+  wirePasswordToggles();
+  wireStrengthMeter(document.getElementById("signup-password"));
+  wireStrengthMeter(document.getElementById("reset-new-password"));
+
   if (supabaseEnabled) {
     const sb = getSupabaseClient();
     const { data } = await sb.auth.getSession();
     const sessionUser = data?.session?.user ? await fetchSupabaseProfile(data.session.user) : null;
+    const hashParams = new URLSearchParams(window.location.hash.replace("#", ""));
+    const searchParams = new URLSearchParams(window.location.search);
+    const isRecovery = hashParams.get("type") === "recovery" || searchParams.get("type") === "recovery";
 
     updateNavForAuth(sessionUser);
 
@@ -255,6 +381,38 @@ const initAuth = async () => {
     if (authForms.length > 0) {
       const loginForm = document.querySelector('[data-auth-form="login"]');
       const signupForm = document.querySelector('[data-auth-form="signup"]');
+      const resetRequestForm = document.querySelector('[data-auth-form="reset-request"]');
+      const resetConfirmForm = document.querySelector('[data-auth-form="reset-confirm"]');
+      const handleInput = document.getElementById("signup-handle");
+
+      toggleResetMode(isRecovery ? "confirm" : "request");
+      if (isRecovery) {
+        showAuthCard("reset");
+      }
+
+      if (handleInput) {
+        let handleTimer = null;
+        const checkAndReport = async () => {
+          const handleRaw = handleInput.value.trim();
+          const handle = handleRaw.startsWith("@") ? handleRaw : `@${handleRaw}`;
+          if (!/^@[a-z0-9_]{3,18}$/i.test(handle)) {
+            setHandleMessage("Use @tag (3-18 letters/numbers).", "error");
+            return;
+          }
+          const result = await checkHandleAvailability(handle);
+          if (result.available) {
+            setHandleMessage("Gamer tag available.", "success");
+          } else {
+            setHandleMessage(result.reason, "error");
+          }
+        };
+
+        handleInput.addEventListener("blur", checkAndReport);
+        handleInput.addEventListener("input", () => {
+          clearTimeout(handleTimer);
+          handleTimer = setTimeout(checkAndReport, 450);
+        });
+      }
 
       if (loginForm) {
         loginForm.addEventListener("submit", async (event) => {
@@ -323,6 +481,13 @@ const initAuth = async () => {
             return;
           }
 
+          const handleAvailability = await checkHandleAvailability(handle);
+          if (!handleAvailability.available) {
+            setHandleMessage(handleAvailability.reason, "error");
+            setMessage("signup", "Choose a different gamer tag.", "error");
+            return;
+          }
+
           setPreferredStorage(true);
           const client = getSupabaseClient();
           const { data, error } = await client.auth.signUp({
@@ -371,15 +536,69 @@ const initAuth = async () => {
         });
       }
 
+      if (resetRequestForm) {
+        resetRequestForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const formData = new FormData(resetRequestForm);
+          const email = normalizeEmail(formData.get("email") || "");
+
+          if (!email) {
+            setMessage("reset", "Enter the email you used to register.", "error");
+            return;
+          }
+
+          const redirectTo = `${window.location.origin}/auth.html#reset`;
+          const client = getSupabaseClient();
+          const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+
+          if (error) {
+            setMessage("reset", error.message || "Reset failed. Try again.", "error");
+            return;
+          }
+
+          setMessage("reset", "Reset link sent. Check your email inbox.", "success");
+        });
+      }
+
+      if (resetConfirmForm) {
+        resetConfirmForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const formData = new FormData(resetConfirmForm);
+          const password = String(formData.get("password") || "");
+          const confirm = String(formData.get("confirm") || "");
+
+          if (password.length < 6) {
+            setMessage("reset-confirm", "Passwords need at least 6 characters.", "error");
+            return;
+          }
+
+          if (password !== confirm) {
+            setMessage("reset-confirm", "Passwords do not match yet. Try again.", "error");
+            return;
+          }
+
+          const client = getSupabaseClient();
+          const { error } = await client.auth.updateUser({ password });
+
+          if (error) {
+            setMessage("reset-confirm", error.message || "Reset failed. Try again.", "error");
+            return;
+          }
+
+          setMessage("reset-confirm", "Password updated. Redirecting to login...", "success");
+          await client.auth.signOut();
+          setTimeout(() => {
+            window.location.href = "auth.html#login";
+          }, 800);
+        });
+      }
+
       document.querySelectorAll("[data-auth-action]").forEach((button) => {
         button.addEventListener("click", (event) => {
           event.preventDefault();
           const action = button.getAttribute("data-auth-action");
           if (action === "discord") {
             setMessage("login", "Discord login is coming soon. Use email for now.", "error");
-          }
-          if (action === "reset") {
-            setMessage("login", "Password resets are coming soon. Create a new account for now.", "error");
           }
         });
       });
@@ -412,6 +631,35 @@ const initAuth = async () => {
   if (authForms.length > 0) {
     const loginForm = document.querySelector('[data-auth-form="login"]');
     const signupForm = document.querySelector('[data-auth-form="signup"]');
+    const resetRequestForm = document.querySelector('[data-auth-form="reset-request"]');
+    const resetConfirmForm = document.querySelector('[data-auth-form="reset-confirm"]');
+    const handleInput = document.getElementById("signup-handle");
+
+    toggleResetMode("request");
+
+    if (handleInput) {
+      let handleTimer = null;
+      const checkAndReport = async () => {
+        const handleRaw = handleInput.value.trim();
+        const handle = handleRaw.startsWith("@") ? handleRaw : `@${handleRaw}`;
+        if (!/^@[a-z0-9_]{3,18}$/i.test(handle)) {
+          setHandleMessage("Use @tag (3-18 letters/numbers).", "error");
+          return;
+        }
+        const result = await checkHandleAvailability(handle);
+        if (result.available) {
+          setHandleMessage("Gamer tag available.", "success");
+        } else {
+          setHandleMessage(result.reason, "error");
+        }
+      };
+
+      handleInput.addEventListener("blur", checkAndReport);
+      handleInput.addEventListener("input", () => {
+        clearTimeout(handleTimer);
+        handleTimer = setTimeout(checkAndReport, 450);
+      });
+    }
 
     if (loginForm) {
       loginForm.addEventListener("submit", (event) => {
@@ -451,7 +699,7 @@ const initAuth = async () => {
     }
 
     if (signupForm) {
-      signupForm.addEventListener("submit", (event) => {
+      signupForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const formData = new FormData(signupForm);
         const name = String(formData.get("name") || "").trim();
@@ -485,6 +733,13 @@ const initAuth = async () => {
 
         if (password !== confirm) {
           setMessage("signup", "Passwords do not match yet. Try again.", "error");
+          return;
+        }
+
+        const handleAvailability = await checkHandleAvailability(handle);
+        if (!handleAvailability.available) {
+          setHandleMessage(handleAvailability.reason, "error");
+          setMessage("signup", "Choose a different gamer tag.", "error");
           return;
         }
 
@@ -526,6 +781,20 @@ const initAuth = async () => {
         setTimeout(() => {
           window.location.href = "profile.html";
         }, 700);
+      });
+    }
+
+    if (resetRequestForm) {
+      resetRequestForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        setMessage("reset", "Password resets require the hosted backend.", "error");
+      });
+    }
+
+    if (resetConfirmForm) {
+      resetConfirmForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        setMessage("reset-confirm", "Password resets require the hosted backend.", "error");
       });
     }
 
@@ -578,3 +847,5 @@ if (reels.length > 0) {
     { passive: true }
   );
 }
+
+

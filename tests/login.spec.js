@@ -62,8 +62,11 @@ test('shows placeholders for discord login and password reset', async ({ page })
     .toHaveText('Discord login is coming soon. Use email for now.');
 
   await page.getByRole('link', { name: 'Reset it' }).click();
-  await expect(page.locator('[data-auth-message="login"]'))
-    .toHaveText('Password resets are coming soon. Create a new account for now.');
+  await expect(page).toHaveURL(/#reset/);
+  await page.getByLabel('Email').last().fill(demoUser.email);
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(page.locator('[data-auth-message="reset"]'))
+    .toHaveText('Password resets require the hosted backend.');
 });
 
 test('logout clears the session and returns home', async ({ page }) => {

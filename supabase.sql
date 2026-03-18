@@ -22,3 +22,5 @@ create policy "Users can update their profile"
   on public.profiles
   for update
   using (auth.uid() = id);
+
+

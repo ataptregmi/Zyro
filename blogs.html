@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Blogs & Guides | RetroGamingSphere</title>
+    <title>Blogs & Guides | Play Portal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,7 +18,7 @@
       <nav class="nav">
         <a class="brand" href="index.html">
           <span class="brand-mark">R</span>
-          <span class="brand-text">RetroGamingSphere</span>
+          <span class="brand-text">Play Portal</span>
           <span class="brand-tag">REGAS</span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
@@ -51,6 +51,69 @@
           <button class="btn btn-gradient">Write a guide</button>
           <button class="btn btn-outline">Browse topics</button>
         </div>
+      </section>
+
+      <section class="blog-toolbar">
+        <div class="blog-search">
+          <label class="sr-only" for="blog-search">Search guides</label>
+          <input id="blog-search" type="text" placeholder="Search guides, games, creators" />
+          <button class="btn btn-gradient">Search</button>
+        </div>
+        <div class="blog-filters">
+          <button class="chip chip-active">All</button>
+          <button class="chip">FPS</button>
+          <button class="chip">RPG</button>
+          <button class="chip">Strategy</button>
+          <button class="chip">Reviews</button>
+          <button class="chip">Esports</button>
+        </div>
+      </section>
+
+      <section class="blog-featured">
+        <article class="featured-card">
+          <div class="featured-media">
+            <span>Featured</span>
+          </div>
+          <div class="featured-body">
+            <p class="eyebrow">Cover Story</p>
+            <h2>Ranked climb blueprint for Season 9</h2>
+            <p>
+              From early-game economy to late-game positioning, this guide breaks down the
+              exact habits top squads use to stay consistent.
+            </p>
+            <div class="featured-meta">
+              <span>by @vectorprime</span>
+              <span>8 min read</span>
+              <span>Mar 12, 2026</span>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-gradient">Read now</button>
+              <button class="btn btn-outline">Save for later</button>
+            </div>
+          </div>
+        </article>
+        <aside class="trend-panel">
+          <h3>Trending right now</h3>
+          <ul class="trend-list">
+            <li>
+              <strong>Control point rotations</strong>
+              <span>1.2k reads</span>
+            </li>
+            <li>
+              <strong>Best support loadouts</strong>
+              <span>980 reads</span>
+            </li>
+            <li>
+              <strong>Patch 9.2 tier list</strong>
+              <span>876 reads</span>
+            </li>
+            <li>
+              <strong>Solo queue survival kit</strong>
+              <span>742 reads</span>
+            </li>
+          </ul>
+          <button class="btn btn-outline">View trending</button>
+        </aside>
       </section>
 
       <section class="blog-grid expanded">
@@ -98,12 +161,106 @@
             </div>
           </div>
         </article>
+        <article class="blog-card">
+          <div class="blog-cover">Meta</div>
+          <div class="blog-body">
+            <h3>Patch watch: what the meta shift means</h3>
+            <p>Key buffs, nerfs, and how to retool your squad composition.</p>
+            <div class="blog-meta">
+              <span>by @patchnote</span>
+              <span>Mar 10, 2026</span>
+            </div>
+          </div>
+        </article>
+        <article class="blog-card">
+          <div class="blog-cover">Ops</div>
+          <div class="blog-body">
+            <h3>Communication playbook for ranked teams</h3>
+            <p>Callouts, timing, and clarity for faster decision-making.</p>
+            <div class="blog-meta">
+              <span>by @commsqueen</span>
+              <span>Mar 11, 2026</span>
+            </div>
+          </div>
+        </article>
+        <article class="blog-card">
+          <div class="blog-cover">Map</div>
+          <div class="blog-body">
+            <h3>Map control: holding mid without overextending</h3>
+            <p>Anchor positions that protect objectives and setup rotations.</p>
+            <div class="blog-meta">
+              <span>by @atlas</span>
+              <span>Mar 13, 2026</span>
+            </div>
+          </div>
+        </article>
+        <article class="blog-card">
+          <div class="blog-cover">Gear</div>
+          <div class="blog-body">
+            <h3>Loadout lab: fast ADS builds</h3>
+            <p>Three weapon setups that cut aim-down-sight time to the minimum.</p>
+            <div class="blog-meta">
+              <span>by @forge</span>
+              <span>Mar 14, 2026</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="blog-spotlight">
+        <div>
+          <p class="eyebrow">Creator Spotlight</p>
+          <h2>Meet the analysts behind the guides</h2>
+          <p>
+            Weekly breakdowns from strategists, coaches, and reviewers who live for the
+            meta. Follow them to get notified about new drops.
+          </p>
+        </div>
+        <div class="spotlight-grid">
+          <article class="spotlight-card">
+            <div class="spotlight-avatar">VP</div>
+            <div>
+              <h3>@vectorprime</h3>
+              <p>Ranked strategist â€¢ 12 guides</p>
+            </div>
+            <button class="chip">Follow</button>
+          </article>
+          <article class="spotlight-card">
+            <div class="spotlight-avatar">TK</div>
+            <div>
+              <h3>@tactician</h3>
+              <p>Macro analyst â€¢ 9 guides</p>
+            </div>
+            <button class="chip">Follow</button>
+          </article>
+          <article class="spotlight-card">
+            <div class="spotlight-avatar">LK</div>
+            <div>
+              <h3>@lorekeeper</h3>
+              <p>Game reviewer â€¢ 14 reviews</p>
+            </div>
+            <button class="chip">Follow</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="blog-cta">
+        <div>
+          <p class="eyebrow">Weekly Intel</p>
+          <h2>Get the best guides in your inbox</h2>
+          <p>One email per week. No spam, just high-signal strategy.</p>
+        </div>
+        <form class="blog-form">
+          <label class="sr-only" for="blog-email">Email address</label>
+          <input id="blog-email" type="email" placeholder="you@regas.gg" />
+          <button class="btn btn-gradient" type="submit">Subscribe</button>
+        </form>
       </section>
     </main>
 
     <footer class="site-footer">
       <div>
-        <h3>RetroGamingSphere</h3>
+        <h3>Play Portal</h3>
         <p>All-in-One Platform for Gamers</p>
       </div>
       <div class="footer-links">
@@ -116,12 +273,16 @@
     </footer>
 
     <script>
-      window.REGAS_SUPABASE = {
-        url: "https://mwxcwwsyuofcxdranrdy.supabase.co",
-        anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13eGN3d3N5dW9mY3hkcmFucmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MTQ0MjEsImV4cCI6MjA4OTI5MDQyMX0.ZrAYdzDPQLQAN_1TNIosP_qnlaWPyK7ouC9iRR-6qM0",
-      };
+      if (!window.REGAS_SUPABASE) {
+        window.REGAS_SUPABASE = {
+          url: "https://mwxcwwsyuofcxdranrdy.supabase.co",
+          anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13eGN3d3N5dW9mY3hkcmFucmR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MTQ0MjEsImV4cCI6MjA4OTI5MDQyMX0.ZrAYdzDPQLQAN_1TNIosP_qnlaWPyK7ouC9iRR-6qM0",
+        };
+      }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
   </body>
 </html>
+
+
