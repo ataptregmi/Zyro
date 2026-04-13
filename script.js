@@ -284,7 +284,7 @@ const buildSessionUser = (user) => {
   const metadata = user.user_metadata || {};
   return {
     id: user.id,
-    name: metadata.name || metadata.full_name || "Play Portal Player",
+    name: metadata.name || metadata.full_name || "Zyro Player",
     handle: metadata.handle || "@player",
     email: user.email,
     joinedAt: user.created_at || new Date().toISOString(),
@@ -339,7 +339,7 @@ const fetchSupabaseProfile = async (user) => {
 
   return {
     id: user.id,
-    name: data.name || user.user_metadata?.name || "Play Portal Player",
+    name: data.name || user.user_metadata?.name || "Zyro Player",
     handle: data.handle || user.user_metadata?.handle || "@player",
     email: user.email,
     joinedAt: data.joined_at || user.created_at || new Date().toISOString(),
