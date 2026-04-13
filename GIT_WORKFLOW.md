@@ -12,3 +12,8 @@ This project uses a simple, safe Git workflow to reduce mistakes and keep the re
 
 ## Safety Rule
 - Never modify Git config or remotes unless explicitly asked.
+
+## Auto Commit + Push (Hooks)
+- A `pre-commit` hook auto-stages changes before each commit (opt out: `NO_AUTO_STAGE=1`).
+- A `post-commit` hook auto-pushes to GitHub after each commit (opt out: `NO_AUTO_PUSH=1`).
+- These hooks only run when you execute `git commit`. They do not run on file save.
