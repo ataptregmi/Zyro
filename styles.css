@@ -528,6 +528,12 @@ main {
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
+.blog-empty {
+  text-align: center;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
 .blog-toolbar {
   display: grid;
   gap: 16px;
@@ -545,6 +551,28 @@ main {
 }
 
 .blog-search input {
+  background: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+}
+
+.reels-toolbar {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.reels-search {
+  background: var(--surface);
+  padding: 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.reels-search input {
+  width: 100%;
   background: #121212;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;

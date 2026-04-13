@@ -850,42 +850,217 @@ if (reels.length > 0) {
 
 const initBlogFilters = () => {
   const filterWrap = document.querySelector(".blog-filters");
-  const cards = Array.from(
-    document.querySelectorAll(".blog-grid .blog-card[data-category], .reels-feed .reel-card[data-category]")
-  );
-  if (!filterWrap || cards.length === 0) return;
+  const reelSearchInput = document.querySelector("[data-reel-search]");
+  const blogSearchInput = document.querySelector(".blog-search input");
+  const blogSearchButton = document.querySelector(".blog-search button");
+  const blogGrid = document.querySelector(".blog-grid");
+  const emptyState = document.querySelector("[data-blog-empty]");
 
-  const buttons = Array.from(filterWrap.querySelectorAll("button[data-category]"));
+  const blogCards = Array.from(document.querySelectorAll(".blog-grid .blog-card[data-category]"));
+  const reelCards = Array.from(document.querySelectorAll(".reels-feed .reel-card[data-category]"));
+  const cards = [...blogCards, ...reelCards];
 
-  const applyFilter = (category) => {
-    const normalized = category.toLowerCase();
-    cards.forEach((card) => {
-      const categories = (card.dataset.category || "").toLowerCase().split(/\s+/).filter(Boolean);
-      const matches = normalized === "all" || categories.includes(normalized);
-      if (matches) {
-        card.style.display = "";
-        requestAnimationFrame(() => {
-          card.classList.remove("is-hidden");
-        });
-      } else {
-        card.classList.add("is-hidden");
-        setTimeout(() => {
-          if (card.classList.contains("is-hidden")) {
-            card.style.display = "none";
-          }
-        }, 180);
-      }
+  if (cards.length === 0 || (!filterWrap && !reelSearchInput && !blogSearchInput)) return;
+
+  const buttons = filterWrap ? Array.from(filterWrap.querySelectorAll("button[data-category]")) : [];
+  const reelFeed = document.querySelector(".reels-feed");
+  const reelOrder = reelCards.map((card) => card);
+  const blogOrder = blogCards.map((card) => card);
+  const blogIndex = new Map(blogOrder.map((card, index) => [card, index]));
+  let activeCategory = "all";
+  let reelSearchKeywords = [];
+  let blogSearchKeywords = [];
+  let searchTimer = null;
+
+  const ensureReelMetadata = (card) => {
+    if (!card.classList.contains("reel-card")) return;
+    const titleText = (card.dataset.title || card.querySelector("h3")?.textContent || "").trim();
+    const creatorRaw = (card.dataset.creator || card.querySelector(".reel-info p")?.textContent || "").trim();
+    const creatorText = creatorRaw.replace(/^by\s+/i, "").trim();
+    if (titleText && !card.dataset.title) {
+      card.dataset.title = titleText;
+    }
+    if (creatorText && !card.dataset.creator) {
+      card.dataset.creator = creatorText;
+    }
+  };
+
+  cards.forEach(ensureReelMetadata);
+
+  const normalize = (value) => (value || "").toLowerCase();
+
+  const getKeywords = (value) =>
+    value
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+  const getCategories = (card) =>
+    normalize(card.dataset.category).split(/\s+/).filter(Boolean);
+
+  const getBlogFields = (card) => {
+    const title = card.dataset.title || card.querySelector("h3")?.textContent || "";
+    const content = card.dataset.content || card.querySelector("p")?.textContent || "";
+    const creator =
+      card.dataset.creator || card.querySelector(".blog-meta span")?.textContent || "";
+    return {
+      title: normalize(title),
+      content: normalize(content),
+      creator: normalize(creator.replace(/^by\s+/i, "")),
+    };
+  };
+
+  const scoreBlog = (card) => {
+    if (blogSearchKeywords.length === 0) return 0;
+    const fields = getBlogFields(card);
+    let score = 0;
+    blogSearchKeywords.forEach((keyword) => {
+      if (fields.title.includes(keyword)) score += 3;
+      if (fields.content.includes(keyword)) score += 2;
+      if (fields.creator.includes(keyword)) score += 1;
+    });
+    return score;
+  };
+
+  const scoreReel = (card) => {
+    if (!reelSearchInput || !card.classList.contains("reel-card")) return 0;
+    if (reelSearchKeywords.length === 0) return 0;
+    const title = (card.dataset.title || "").toLowerCase();
+    const creator = (card.dataset.creator || "").toLowerCase();
+    let score = 0;
+    reelSearchKeywords.forEach((keyword) => {
+      if (title.includes(keyword)) score += 2;
+      if (creator.includes(keyword)) score += 1;
+    });
+    return score;
+  };
+
+  const showCard = (card) => {
+    card.style.display = "";
+    requestAnimationFrame(() => {
+      card.classList.remove("is-hidden");
     });
   };
 
-  buttons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const category = button.dataset.category || "all";
-      buttons.forEach((btn) => btn.classList.remove("chip-active"));
-      button.classList.add("chip-active");
-      applyFilter(category);
+  const hideCard = (card) => {
+    card.classList.add("is-hidden");
+    setTimeout(() => {
+      if (card.classList.contains("is-hidden")) {
+        card.style.display = "none";
+      }
+    }, 180);
+  };
+
+  const applyFilters = () => {
+    const reelScores = new Map();
+    const blogScores = new Map();
+    let visibleBlogs = 0;
+
+    cards.forEach((card) => {
+      const categories = getCategories(card);
+      const categoryMatch = activeCategory === "all" || categories.includes(activeCategory);
+      const isReel = card.classList.contains("reel-card");
+      const score = isReel ? scoreReel(card) : scoreBlog(card);
+      const searchMatch = isReel
+        ? reelSearchKeywords.length === 0 || score > 0
+        : blogSearchKeywords.length === 0 || score > 0;
+      const matches = categoryMatch && searchMatch;
+
+      if (isReel) {
+        reelScores.set(card, score);
+      } else {
+        blogScores.set(card, score);
+        if (matches) visibleBlogs += 1;
+      }
+
+      if (matches) showCard(card);
+      else hideCard(card);
     });
-  });
+
+    if (reelFeed && reelCards.length > 0) {
+      if (reelSearchKeywords.length === 0) {
+        reelOrder.forEach((card) => reelFeed.appendChild(card));
+      } else {
+        const sorted = reelCards
+          .slice()
+          .sort((a, b) => (reelScores.get(b) || 0) - (reelScores.get(a) || 0));
+        sorted.forEach((card) => reelFeed.appendChild(card));
+      }
+    }
+
+    if (blogGrid && blogCards.length > 0) {
+      if (blogSearchKeywords.length === 0) {
+        blogOrder.forEach((card) => blogGrid.appendChild(card));
+      } else {
+        const sorted = blogCards
+          .slice()
+          .sort((a, b) => {
+            const scoreDiff = (blogScores.get(b) || 0) - (blogScores.get(a) || 0);
+            if (scoreDiff !== 0) return scoreDiff;
+            return (blogIndex.get(a) || 0) - (blogIndex.get(b) || 0);
+          });
+        sorted.forEach((card) => blogGrid.appendChild(card));
+      }
+    }
+
+    if (emptyState) {
+      if (visibleBlogs === 0) emptyState.classList.remove("is-hidden");
+      else emptyState.classList.add("is-hidden");
+    }
+  };
+
+  if (buttons.length > 0) {
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const category = button.dataset.category || "all";
+        activeCategory = category.toLowerCase();
+        buttons.forEach((btn) => btn.classList.remove("chip-active"));
+        button.classList.add("chip-active");
+        applyFilters();
+      });
+    });
+  }
+
+  if (reelSearchInput) {
+    reelSearchInput.addEventListener("input", () => {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        reelSearchKeywords = getKeywords(reelSearchInput.value || "");
+        applyFilters();
+      }, 300);
+    });
+  }
+
+  if (blogSearchInput) {
+    const runBlogSearch = () => {
+      blogSearchKeywords = getKeywords(blogSearchInput.value || "");
+      applyFilters();
+    };
+
+    blogSearchInput.addEventListener("input", () => {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(runBlogSearch, 300);
+    });
+
+    blogSearchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (searchTimer) clearTimeout(searchTimer);
+        runBlogSearch();
+      }
+    });
+
+    if (blogSearchButton) {
+      blogSearchButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (searchTimer) clearTimeout(searchTimer);
+        runBlogSearch();
+      });
+    }
+  }
+
+  applyFilters();
 };
 
 initBlogFilters();
