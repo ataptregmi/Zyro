@@ -848,5 +848,47 @@ if (reels.length > 0) {
   );
 }
 
+const initBlogFilters = () => {
+  const filterWrap = document.querySelector(".blog-filters");
+  const cards = Array.from(
+    document.querySelectorAll(".blog-grid .blog-card[data-category], .reels-feed .reel-card[data-category]")
+  );
+  if (!filterWrap || cards.length === 0) return;
+
+  const buttons = Array.from(filterWrap.querySelectorAll("button[data-category]"));
+
+  const applyFilter = (category) => {
+    const normalized = category.toLowerCase();
+    cards.forEach((card) => {
+      const categories = (card.dataset.category || "").toLowerCase().split(/\s+/).filter(Boolean);
+      const matches = normalized === "all" || categories.includes(normalized);
+      if (matches) {
+        card.style.display = "";
+        requestAnimationFrame(() => {
+          card.classList.remove("is-hidden");
+        });
+      } else {
+        card.classList.add("is-hidden");
+        setTimeout(() => {
+          if (card.classList.contains("is-hidden")) {
+            card.style.display = "none";
+          }
+        }, 180);
+      }
+    });
+  };
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const category = button.dataset.category || "all";
+      buttons.forEach((btn) => btn.classList.remove("chip-active"));
+      button.classList.add("chip-active");
+      applyFilter(category);
+    });
+  });
+};
+
+initBlogFilters();
+
 
 

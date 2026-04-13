@@ -60,12 +60,12 @@
           <button class="btn btn-gradient">Search</button>
         </div>
         <div class="blog-filters">
-          <button class="chip chip-active">All</button>
-          <button class="chip">FPS</button>
-          <button class="chip">RPG</button>
-          <button class="chip">Strategy</button>
-          <button class="chip">Reviews</button>
-          <button class="chip">Esports</button>
+          <button class="chip chip-active" data-category="all">All</button>
+          <button class="chip" data-category="fps">FPS</button>
+          <button class="chip" data-category="rpg">RPG</button>
+          <button class="chip" data-category="strategy">Strategy</button>
+          <button class="chip" data-category="reviews">Reviews</button>
+          <button class="chip" data-category="esports">Esports</button>
         </div>
       </section>
 
@@ -117,7 +117,7 @@
       </section>
 
       <section class="blog-grid expanded">
-        <article class="blog-card">
+        <article class="blog-card" data-category="fps strategy">
           <div class="blog-cover">Aim</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -133,7 +133,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="strategy esports">
           <div class="blog-cover">Macro</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -149,7 +149,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="reviews rpg">
           <div class="blog-cover">Review</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -165,7 +165,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="strategy esports">
           <div class="blog-cover">Guide</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -181,7 +181,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="strategy esports">
           <div class="blog-cover">Meta</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -197,7 +197,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="esports fps">
           <div class="blog-cover">Ops</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -213,7 +213,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="strategy rpg">
           <div class="blog-cover">Map</div>
           <div class="blog-body">
             <div class="blog-tags">
@@ -229,7 +229,7 @@
             </div>
           </div>
         </article>
-        <article class="blog-card">
+        <article class="blog-card" data-category="fps reviews">
           <div class="blog-cover">Gear</div>
           <div class="blog-body">
             <div class="blog-tags">
