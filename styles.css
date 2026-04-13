@@ -534,6 +534,58 @@ main {
   margin-top: 12px;
 }
 
+.blog-trending {
+  margin: 32px 0;
+}
+
+.trending-list {
+  display: grid;
+  gap: 12px;
+}
+
+.trending-item {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.trending-item strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.trending-item span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.trending-score {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.blog-actions {
+  margin-top: 8px;
+}
+
+.blog-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blog-like.is-liked {
+  background: rgba(255, 193, 7, 0.25);
+  border-color: rgba(255, 193, 7, 0.5);
+}
+
 .blog-toolbar {
   display: grid;
   gap: 16px;

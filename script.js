@@ -1065,5 +1065,153 @@ const initBlogFilters = () => {
 
 initBlogFilters();
 
+const initBlogTrending = () => {
+  const blogCards = Array.from(document.querySelectorAll(".blog-grid .blog-card[data-id]"));
+  const trendingList = document.querySelector("[data-trending-list]");
+  if (blogCards.length === 0 || !trendingList) return;
+
+  const storageKey = "ZyroBlogEngagement";
+  const scoreWeights = { views: 1, likes: 3 };
+  const viewedSession = new Set();
+
+  const readStore = () => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      return {};
+    }
+  };
+
+  const writeStore = (data) => {
+    localStorage.setItem(storageKey, JSON.stringify(data));
+  };
+
+  const getStats = (store, id) => {
+    if (!store[id]) {
+      store[id] = { views: 0, likes: 0 };
+    }
+    return store[id];
+  };
+
+  const calcScore = (stats) => stats.views * scoreWeights.views + stats.likes * scoreWeights.likes;
+
+  const syncLikeUI = (card, stats) => {
+    const likeButton = card.querySelector("[data-like-button]");
+    const likeCount = card.querySelector("[data-like-count]");
+    if (likeCount) likeCount.textContent = String(stats.likes);
+    if (likeButton && stats.likes > 0) {
+      likeButton.classList.add("is-liked");
+    }
+  };
+
+  const updateTrendingList = () => {
+    const store = readStore();
+    const entries = blogCards.map((card) => {
+      const id = card.dataset.id;
+      const stats = getStats(store, id);
+      const title = card.dataset.title || card.querySelector("h3")?.textContent || "Untitled";
+      const creator =
+        card.dataset.creator ||
+        card.querySelector(".blog-meta span")?.textContent ||
+        "Community";
+      const score = calcScore(stats);
+      return { card, id, title, creator, score, stats };
+    });
+
+    const sorted = entries
+      .slice()
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+
+    trendingList.innerHTML = "";
+    if (sorted.length === 0 || sorted.every((item) => item.score === 0)) {
+      trendingList.innerHTML = `
+        <div class="trending-item">
+          <div>
+            <strong>Community warm-up in progress</strong>
+            <span>Interact with posts to build trending data.</span>
+          </div>
+          <span class="trending-score">0</span>
+        </div>
+      `;
+      return;
+    }
+
+    sorted.forEach((item, index) => {
+      const badge = index < 3 ? "🔥" : "•";
+      const row = document.createElement("div");
+      row.className = "trending-item";
+      row.innerHTML = `
+        <div>
+          <strong>${badge} ${item.title}</strong>
+          <span>${item.creator} · ${item.stats.views} views · ${item.stats.likes} likes</span>
+        </div>
+        <span class="trending-score">${item.score}</span>
+      `;
+      trendingList.appendChild(row);
+    });
+  };
+
+  const recordView = (card) => {
+    const id = card.dataset.id;
+    if (!id || viewedSession.has(id)) return;
+    viewedSession.add(id);
+    const store = readStore();
+    const stats = getStats(store, id);
+    stats.views += 1;
+    writeStore(store);
+    updateTrendingList();
+  };
+
+  const recordLike = (card) => {
+    const id = card.dataset.id;
+    if (!id) return;
+    const store = readStore();
+    const stats = getStats(store, id);
+    stats.likes += 1;
+    writeStore(store);
+    syncLikeUI(card, stats);
+    updateTrendingList();
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          recordView(entry.target);
+        }
+      });
+    },
+    { threshold: 0.6 }
+  );
+
+  blogCards.forEach((card) => {
+    observer.observe(card);
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("[data-like-button]")) return;
+      recordView(card);
+    });
+
+    const likeButton = card.querySelector("[data-like-button]");
+    if (likeButton) {
+      likeButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        recordLike(card);
+      });
+    }
+  });
+
+  const store = readStore();
+  blogCards.forEach((card) => {
+    const stats = getStats(store, card.dataset.id);
+    syncLikeUI(card, stats);
+  });
+
+  updateTrendingList();
+};
+
+initBlogTrending();
+
 
 
