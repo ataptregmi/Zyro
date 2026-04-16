@@ -1,7 +1,20 @@
-import React from "https://esm.sh/react@18.3.1";
+import * as React from "https://esm.sh/react@18.3.1";
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
 
-const { useMemo, useState, useEffect } = React;
+function getRootElement() {
+  return document.getElementById("root");
+}
+
+function renderHardFallback(message) {
+  const root = getRootElement();
+  if (!root) return;
+  root.innerHTML = `
+    <div style="border:1px solid rgba(255,255,255,0.12);background:rgba(15,23,42,0.92);border-radius:24px;padding:24px;color:white;font-family:Arial,sans-serif;">
+      <h1 style="margin:0 0 12px 0;font-size:28px;">Upload Video</h1>
+      <p style="margin:0;color:#cbd5e1;">${message}</p>
+    </div>
+  `;
+}
 
 function hasFirebaseConfig() {
   const config = window.ZYRO_FIREBASE_CONFIG;
@@ -32,22 +45,20 @@ async function uploadToFirebase(file) {
   const app = getApps().length ? getApp() : initializeApp(config);
   const storage = getStorage(app);
   const safeName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-  const storageRef = ref(storage, `uploads/${safeName}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+  const fileRef = ref(storage, `uploads/${safeName}`);
+  await uploadBytes(fileRef, file);
+  return await getDownloadURL(fileRef);
 }
 
 function App() {
-  const [file, setFile] = useState(null);
-  const [caption, setCaption] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [uploadedUrl, setUploadedUrl] = useState("");
+  const [file, setFile] = React.useState(null);
+  const [caption, setCaption] = React.useState("");
+  const [previewUrl, setPreviewUrl] = React.useState("");
+  const [uploadedUrl, setUploadedUrl] = React.useState("");
+  const [status, setStatus] = React.useState("Choose a video to begin.");
+  const [isUploading, setIsUploading] = React.useState(false);
 
-  const firebaseEnabled = useMemo(() => hasFirebaseConfig(), []);
-
-  useEffect(() => {
+  React.useEffect(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -55,12 +66,12 @@ function App() {
     };
   }, [previewUrl]);
 
-  function handleFileChange(event) {
-    const selectedFile = event.target.files && event.target.files[0];
-    if (!selectedFile) return;
+  function onFileChange(event) {
+    const nextFile = event.target.files && event.target.files[0];
+    if (!nextFile) return;
 
-    if (!selectedFile.type.startsWith("video/")) {
-      alert("Please select a valid video file.");
+    if (!nextFile.type || !nextFile.type.startsWith("video/")) {
+      window.alert("Please select a valid video file.");
       return;
     }
 
@@ -68,37 +79,36 @@ function App() {
       URL.revokeObjectURL(previewUrl);
     }
 
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setFile(selectedFile);
-    setPreviewUrl(objectUrl);
+    const nextPreviewUrl = URL.createObjectURL(nextFile);
+    setFile(nextFile);
+    setPreviewUrl(nextPreviewUrl);
     setUploadedUrl("");
-    setMessage("");
+    setStatus("Video selected. Ready to upload.");
   }
 
-  async function handleUpload() {
+  async function onUploadClick() {
     if (!file) {
-      alert("Please select a video file first.");
+      window.alert("Please select a video first.");
       return;
     }
 
     try {
       setIsUploading(true);
-      setMessage("");
+      setStatus(hasFirebaseConfig() ? "Uploading to Firebase..." : "Simulating upload...");
 
-      if (firebaseEnabled) {
-        const url = await uploadToFirebase(file);
-        setUploadedUrl(url);
-        setMessage("Upload complete");
+      if (hasFirebaseConfig()) {
+        const downloadUrl = await uploadToFirebase(file);
+        setUploadedUrl(downloadUrl);
       } else {
-        await new Promise((resolve) => {
-          window.setTimeout(resolve, 2000);
-        });
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
         setUploadedUrl(previewUrl);
-        setMessage("Upload complete");
       }
+
+      setStatus("Upload complete");
     } catch (error) {
       console.error("Upload failed:", error);
-      alert("Upload failed. Please try again.");
+      setStatus("Upload failed");
+      window.alert("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
     }
@@ -108,7 +118,7 @@ function App() {
     "div",
     {
       className:
-        "rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-black/30 backdrop-blur",
+        "rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl shadow-black/30",
     },
     React.createElement(
       "div",
@@ -117,7 +127,7 @@ function App() {
       React.createElement(
         "p",
         { className: "mt-2 text-sm text-slate-400" },
-        "Simple, stable upload page for Zyro."
+        "Simple, stable upload page."
       )
     ),
     React.createElement(
@@ -134,7 +144,7 @@ function App() {
         React.createElement("input", {
           type: "file",
           accept: "video/*",
-          onChange: handleFileChange,
+          onChange: onFileChange,
           className:
             "block w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-300 file:px-4 file:py-2 file:font-medium file:text-black",
         })
@@ -156,20 +166,31 @@ function App() {
             "w-full rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500",
         })
       ),
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: onUploadClick,
+          disabled: isUploading,
+          className: `w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            isUploading
+              ? "cursor-not-allowed bg-slate-700 text-slate-400"
+              : "bg-amber-300 text-black hover:bg-amber-200"
+          }`,
+        },
+        isUploading ? "Uploading..." : "Upload Video"
+      ),
+      React.createElement(
+        "div",
+        { className: "rounded-xl border border-white/10 bg-slate-800/60 px-4 py-3 text-sm text-slate-300" },
+        status
+      ),
       file
         ? React.createElement(
             "div",
             { className: "rounded-2xl border border-white/10 bg-slate-950 p-4" },
-            React.createElement(
-              "div",
-              { className: "mb-2 text-sm text-slate-200" },
-              file.name
-            ),
-            React.createElement(
-              "div",
-              { className: "mb-4 text-xs text-slate-500" },
-              formatFileSize(file.size)
-            ),
+            React.createElement("div", { className: "mb-2 text-sm text-slate-200" }, file.name),
+            React.createElement("div", { className: "mb-4 text-xs text-slate-500" }, formatFileSize(file.size)),
             previewUrl
               ? React.createElement("video", {
                   src: uploadedUrl || previewUrl,
@@ -180,30 +201,9 @@ function App() {
           )
         : null,
       React.createElement(
-        "button",
-        {
-          type: "button",
-          onClick: handleUpload,
-          disabled: isUploading,
-          className: `w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
-            isUploading
-              ? "cursor-not-allowed bg-slate-700 text-slate-400"
-              : "bg-amber-300 text-black hover:bg-amber-200"
-          }`,
-        },
-        isUploading ? "Uploading..." : "Upload Video"
-      ),
-      message
-        ? React.createElement(
-            "div",
-            { className: "rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100" },
-            message
-          )
-        : null,
-      React.createElement(
         "div",
         { className: "text-center text-xs text-slate-500" },
-        firebaseEnabled
+        hasFirebaseConfig()
           ? "Firebase upload is enabled."
           : "Firebase config not found. Using simulated upload."
       )
@@ -211,15 +211,13 @@ function App() {
   );
 }
 
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  alert("Root element not found.");
-} else {
-  try {
-    createRoot(rootElement).render(React.createElement(App));
-  } catch (error) {
-    console.error("Render failed:", error);
-    alert("The upload page failed to render.");
+try {
+  const rootElement = getRootElement();
+  if (!rootElement) {
+    throw new Error("Root element not found.");
   }
+  createRoot(rootElement).render(React.createElement(App));
+} catch (error) {
+  console.error("Upload page render failed:", error);
+  renderHardFallback("The upload page failed to render correctly.");
 }
