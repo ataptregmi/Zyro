@@ -1,16 +1,11 @@
-import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18.3.1";
+import React from "https://esm.sh/react@18.3.1";
 import { createRoot } from "https://esm.sh/react-dom@18.3.1/client";
-import htm from "https://esm.sh/htm@3.1.1";
-import { getApp, getApps, initializeApp } from "https://esm.sh/firebase@10.12.2/app";
-import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "https://esm.sh/firebase@10.12.2/storage";
 
-const html = htm.bind(React.createElement);
+const { useMemo, useState, useEffect } = React;
 
-const firebaseConfig = window.ZYRO_FIREBASE_CONFIG || null;
-const htmlRoot = document.getElementById("upload-root");
-
-const hasFirebaseConfig = (config) =>
-  Boolean(
+function hasFirebaseConfig() {
+  const config = window.ZYRO_FIREBASE_CONFIG;
+  return Boolean(
     config &&
       config.apiKey &&
       config.authDomain &&
@@ -18,83 +13,39 @@ const hasFirebaseConfig = (config) =>
       config.storageBucket &&
       config.appId
   );
+}
 
-const formatBytes = (bytes) => {
+function formatFileSize(bytes) {
   if (!bytes) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+}
 
-const createPreviewUrl = (file) => URL.createObjectURL(file);
+async function uploadToFirebase(file) {
+  const config = window.ZYRO_FIREBASE_CONFIG;
+  const [{ initializeApp, getApps, getApp }, { getStorage, ref, uploadBytes, getDownloadURL }] =
+    await Promise.all([
+      import("https://esm.sh/firebase@10.12.2/app"),
+      import("https://esm.sh/firebase@10.12.2/storage"),
+    ]);
 
-const simulateUpload = ({ file, onProgress }) =>
-  new Promise((resolve) => {
-    let progress = 0;
-    const timer = window.setInterval(() => {
-      progress += 10;
-      onProgress(Math.min(progress, 100));
-      if (progress >= 100) {
-        window.clearInterval(timer);
-        window.setTimeout(() => {
-          resolve({
-            url: createPreviewUrl(file),
-            mode: "simulated",
-          });
-        }, 250);
-      }
-    }, 180);
-  });
+  const app = getApps().length ? getApp() : initializeApp(config);
+  const storage = getStorage(app);
+  const safeName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+  const storageRef = ref(storage, `uploads/${safeName}`);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
 
-const uploadWithFirebase = ({ file, onProgress }) =>
-  new Promise((resolve, reject) => {
-    try {
-      const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-      const storage = getStorage(app);
-      const safeName = `${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-      const storageRef = ref(storage, `uploads/${safeName}`);
-      const task = uploadBytesResumable(storageRef, file);
-
-      task.on(
-        "state_changed",
-        (snapshot) => {
-          const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          onProgress(percent);
-        },
-        (error) => {
-          console.error("Firebase upload failed:", error);
-          reject(error);
-        },
-        async () => {
-          try {
-            const url = await getDownloadURL(task.snapshot.ref);
-            resolve({
-              url,
-              mode: "firebase",
-            });
-          } catch (error) {
-            console.error("Download URL fetch failed:", error);
-            reject(error);
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Firebase setup failed:", error);
-      reject(error);
-    }
-  });
-
-const UploadApp = () => {
+function App() {
   const [file, setFile] = useState(null);
   const [caption, setCaption] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
-  const [uploadedUrl, setUploadedUrl] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("Choose a video to begin.");
-  const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [uploadedUrl, setUploadedUrl] = useState("");
 
-  const firebaseReady = useMemo(() => hasFirebaseConfig(firebaseConfig), []);
-  const canUpload = Boolean(file) && Boolean(caption.trim()) && !isUploading;
+  const firebaseEnabled = useMemo(() => hasFirebaseConfig(), []);
 
   useEffect(() => {
     return () => {
@@ -104,13 +55,12 @@ const UploadApp = () => {
     };
   }, [previewUrl]);
 
-  const handleFileChange = (event) => {
-    const nextFile = event.target.files?.[0];
-    if (!nextFile) return;
+  function handleFileChange(event) {
+    const selectedFile = event.target.files && event.target.files[0];
+    if (!selectedFile) return;
 
-    if (!nextFile.type.startsWith("video/")) {
-      setMessage("Please choose a valid video file.");
-      setStatus("Invalid file type.");
+    if (!selectedFile.type.startsWith("video/")) {
+      alert("Please select a valid video file.");
       return;
     }
 
@@ -118,168 +68,158 @@ const UploadApp = () => {
       URL.revokeObjectURL(previewUrl);
     }
 
-    const nextPreview = createPreviewUrl(nextFile);
-    setFile(nextFile);
-    setPreviewUrl(nextPreview);
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setFile(selectedFile);
+    setPreviewUrl(objectUrl);
     setUploadedUrl("");
-    setProgress(0);
     setMessage("");
-    setStatus("Ready to upload.");
-  };
+  }
 
-  const handleUpload = async () => {
-    if (!canUpload || !file) return;
-
-    setIsUploading(true);
-    setProgress(0);
-    setMessage("");
-    setStatus(firebaseReady ? "Uploading to Firebase..." : "Firebase missing. Simulating upload...");
+  async function handleUpload() {
+    if (!file) {
+      alert("Please select a video file first.");
+      return;
+    }
 
     try {
-      const result = firebaseReady
-        ? await uploadWithFirebase({
-            file,
-            onProgress: setProgress,
-          })
-        : await simulateUpload({
-            file,
-            onProgress: setProgress,
-          });
+      setIsUploading(true);
+      setMessage("");
 
-      setUploadedUrl(result.url);
-      setStatus("Upload complete");
-      setMessage("Upload complete");
+      if (firebaseEnabled) {
+        const url = await uploadToFirebase(file);
+        setUploadedUrl(url);
+        setMessage("Upload complete");
+      } else {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 2000);
+        });
+        setUploadedUrl(previewUrl);
+        setMessage("Upload complete");
+      }
     } catch (error) {
-      console.error("Upload flow crashed:", error);
-      setStatus("Upload failed");
-      setMessage("Upload failed. Please try again.");
+      console.error("Upload failed:", error);
+      alert("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
     }
-  };
+  }
 
-  return html`
-    <div className="mx-auto max-w-3xl">
-      <section className="rounded-3xl border border-white/10 bg-[#10141c]/90 p-6 shadow-2xl backdrop-blur">
-        <div className="mb-6">
-          <p className="text-xs uppercase tracking-[0.28em] text-amber-300/70">Zyro Upload</p>
-          <h1 className="mt-2 font-['Orbitron'] text-3xl text-white">Upload Video</h1>
-          <p className="mt-3 text-sm text-slate-300">
-            Stable upload flow with Firebase fallback so the page keeps working even when config is missing.
-          </p>
-        </div>
+  return React.createElement(
+    "div",
+    {
+      className:
+        "rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-black/30 backdrop-blur",
+    },
+    React.createElement(
+      "div",
+      { className: "mb-6 text-center" },
+      React.createElement("h1", { className: "text-3xl font-bold text-white" }, "Upload Video"),
+      React.createElement(
+        "p",
+        { className: "mt-2 text-sm text-slate-400" },
+        "Simple, stable upload page for Zyro."
+      )
+    ),
+    React.createElement(
+      "div",
+      { className: "space-y-5" },
+      React.createElement(
+        "div",
+        null,
+        React.createElement(
+          "label",
+          { className: "mb-2 block text-sm font-medium text-slate-300" },
+          "Video File"
+        ),
+        React.createElement("input", {
+          type: "file",
+          accept: "video/*",
+          onChange: handleFileChange,
+          className:
+            "block w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-300 file:px-4 file:py-2 file:font-medium file:text-black",
+        })
+      ),
+      React.createElement(
+        "div",
+        null,
+        React.createElement(
+          "label",
+          { className: "mb-2 block text-sm font-medium text-slate-300" },
+          "Caption"
+        ),
+        React.createElement("input", {
+          type: "text",
+          value: caption,
+          onChange: (event) => setCaption(event.target.value),
+          placeholder: "Write a caption",
+          className:
+            "w-full rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500",
+        })
+      ),
+      file
+        ? React.createElement(
+            "div",
+            { className: "rounded-2xl border border-white/10 bg-slate-950 p-4" },
+            React.createElement(
+              "div",
+              { className: "mb-2 text-sm text-slate-200" },
+              file.name
+            ),
+            React.createElement(
+              "div",
+              { className: "mb-4 text-xs text-slate-500" },
+              formatFileSize(file.size)
+            ),
+            previewUrl
+              ? React.createElement("video", {
+                  src: uploadedUrl || previewUrl,
+                  controls: true,
+                  className: "w-full rounded-xl bg-black",
+                })
+              : null
+          )
+        : null,
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: handleUpload,
+          disabled: isUploading,
+          className: `w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
+            isUploading
+              ? "cursor-not-allowed bg-slate-700 text-slate-400"
+              : "bg-amber-300 text-black hover:bg-amber-200"
+          }`,
+        },
+        isUploading ? "Uploading..." : "Upload Video"
+      ),
+      message
+        ? React.createElement(
+            "div",
+            { className: "rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100" },
+            message
+          )
+        : null,
+      React.createElement(
+        "div",
+        { className: "text-center text-xs text-slate-500" },
+        firebaseEnabled
+          ? "Firebase upload is enabled."
+          : "Firebase config not found. Using simulated upload."
+      )
+    )
+  );
+}
 
-        <div className="grid gap-5">
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-400">Video File</label>
-            <input
-              type="file"
-              accept="video/*"
-              onChange=${handleFileChange}
-              className="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white file:mr-4 file:rounded-xl file:border-0 file:bg-amber-300 file:px-4 file:py-2 file:text-sm file:font-medium file:text-black"
-            />
-          </div>
+const rootElement = document.getElementById("root");
 
-          <div>
-            <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-slate-400">Caption</label>
-            <input
-              type="text"
-              value=${caption}
-              onInput=${(event) => setCaption(event.currentTarget.value)}
-              placeholder="Write a short caption"
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-            />
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-slate-400">
-              <span>${status}</span>
-              <span>${progress}%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-300 transition-all duration-200"
-                style=${{ width: `${progress}%` }}
-              ></div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            disabled=${!canUpload}
-            onClick=${handleUpload}
-            className=${[
-              "rounded-2xl px-5 py-3 text-sm font-semibold transition",
-              canUpload
-                ? "bg-gradient-to-r from-red-500 via-orange-500 to-amber-300 text-black hover:-translate-y-0.5"
-                : "cursor-not-allowed bg-white/10 text-white/40",
-            ].join(" ")}
-          >
-            ${isUploading ? "Uploading..." : "Upload Video"}
-          </button>
-
-          ${message
-            ? html`
-                <div
-                  className=${[
-                    "rounded-2xl border px-4 py-3 text-sm",
-                    message === "Upload complete"
-                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
-                      : "border-red-400/20 bg-red-400/10 text-red-100",
-                  ].join(" ")}
-                >
-                  ${message}
-                </div>
-              `
-            : null}
-
-          ${file
-            ? html`
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                  <div className="mb-3 text-sm text-white">${file.name}</div>
-                  <div className="mb-4 text-xs text-slate-400">${formatBytes(file.size)}</div>
-                  ${previewUrl
-                    ? html`
-                        <video
-                          src=${uploadedUrl || previewUrl}
-                          controls
-                          playsInline
-                          className="w-full rounded-2xl border border-white/10 bg-black"
-                        ></video>
-                      `
-                    : null}
-                </div>
-              `
-            : null}
-
-          <div className="text-xs text-slate-500">
-            ${firebaseReady
-              ? "Firebase mode is active."
-              : "Firebase config is missing, so uploads are simulated instead of crashing the page."}
-          </div>
-        </div>
-      </section>
-    </div>
-  `;
-};
-
-const renderFallback = (text) => {
-  if (!htmlRoot) return;
-  htmlRoot.innerHTML = `
-    <div style="max-width: 720px; margin: 0 auto; padding: 24px; border: 1px solid rgba(255,255,255,0.12); border-radius: 24px; background: rgba(16,20,28,0.9); color: #f8fafc;">
-      <h1 style="margin: 0 0 12px; font-family: Orbitron, sans-serif;">Upload Page Error</h1>
-      <p style="margin: 0; color: #cbd5e1;">${text}</p>
-    </div>
-  `;
-};
-
-if (!htmlRoot) {
-  console.error("Upload root element was not found.");
+if (!rootElement) {
+  alert("Root element not found.");
 } else {
   try {
-    createRoot(htmlRoot).render(html`<${UploadApp} />`);
+    createRoot(rootElement).render(React.createElement(App));
   } catch (error) {
-    console.error("React render failed:", error);
-    renderFallback("The upload page failed to load. Check the console for details.");
+    console.error("Render failed:", error);
+    alert("The upload page failed to render.");
   }
 }
