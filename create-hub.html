@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Hub | Zyro</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">Z</span>
+          <span class="brand-text">Zyro</span>
+          <span class="brand-tag">Zyro</span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="nav-toggle-line"></span>
+          <span class="nav-toggle-line"></span>
+          <span class="nav-toggle-line"></span>
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a class="nav-link" href="index.html">Home</a>
+          <a class="nav-link" href="epic-moments.html">Epic Moments</a>
+          <a class="nav-link active" href="create-hub.html">Create Hub</a>
+          <a class="nav-link" href="blogs.html">Blogs</a>
+          <a class="nav-link" href="leaderboard.html">Leaderboard</a>
+          <a class="nav-link" href="auth.html">Login</a>
+          <a class="nav-link nav-cta" href="auth.html#signup">Signup</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="page create-hub">
+      <section class="page-hero">
+        <div>
+          <p class="eyebrow">Create Hub</p>
+          <h1>Choose how you want to create</h1>
+          <p>Start with a highlight reel or ship a strategy blog to the community.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-gradient" href="upload-video.html">Upload Video</a>
+          <a class="btn btn-outline" href="#blog-create">Write Blog</a>
+        </div>
+      </section>
+
+      <section class="create-hub-grid">
+        <a class="create-card" href="upload-video.html">
+          <div class="create-card-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 6.5c0-1.4 1.1-2.5 2.5-2.5h7c1.4 0 2.5 1.1 2.5 2.5v.6l3.2-2.1c.8-.5 1.8.1 1.8 1v10c0 .9-1 1.5-1.8 1L16 14.9v.6c0 1.4-1.1 2.5-2.5 2.5h-7C5.1 18 4 16.9 4 15.5v-9z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h3>Upload Video</h3>
+            <p>Share your latest highlight and drop it into Epic Moments.</p>
+          </div>
+          <span class="create-card-cta">Open upload flow</span>
+        </a>
+
+        <a class="create-card" href="#blog-create">
+          <div class="create-card-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M6 4h9.5L20 8.5V20c0 1.1-.9 2-2 2H6a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2zm9 1.5V9h3.5L15 5.5zM7.5 12h9v1.8h-9V12zm0 4h9v1.8h-9V16z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h3>Write Blog</h3>
+            <p>Publish guides, patch notes, or strategy breakdowns.</p>
+          </div>
+          <span class="create-card-cta">Open blog composer</span>
+        </a>
+      </section>
+
+      <section class="create-detail" id="video-upload">
+        <div>
+          <p class="eyebrow">Video Upload</p>
+          <h2>Ship a new highlight</h2>
+          <p>
+            Open the dedicated uploader to add a caption, tags, privacy settings, and a preview
+            before posting your next clip.
+          </p>
+        </div>
+        <div class="create-detail-actions">
+          <a class="btn btn-gradient" href="upload-video.html">Go to Uploader</a>
+          <a class="btn btn-outline" href="#blog-create">Write a blog instead</a>
+        </div>
+      </section>
+
+      <section class="create-detail" id="blog-create">
+        <div>
+          <p class="eyebrow">Blog Writing</p>
+          <h2>Share your strategy</h2>
+          <p>
+            The blog editor lives in the Guides section. Start there to publish tips, loadouts, or
+            walkthroughs for the Zyro community.
+          </p>
+        </div>
+        <div class="create-detail-actions">
+          <a class="btn btn-gradient" href="blogs.html">Go to Blogs</a>
+          <a class="btn btn-outline" href="#video-upload">Upload a video instead</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <h3>Zyro</h3>
+        <p>All-in-One Platform for Gamers</p>
+      </div>
+      <div class="footer-links">
+        <a href="epic-moments.html">Epic Moments</a>
+        <a href="create-hub.html">Create Hub</a>
+        <a href="blogs.html">Blogs</a>
+        <a href="leaderboard.html">Leaderboard</a>
+        <a href="profile.html">Profile</a>
+      </div>
+      <p class="footer-note">Built for gamers, by gamers. Â© 2026 Zyro.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

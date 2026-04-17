@@ -8,6 +8,32 @@ if (navToggle && navLinks) {
   });
 }
 
+const markActiveNavLink = () => {
+  const currentPath = window.location.pathname.split("/").pop() || "index.html";
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    const href = link.getAttribute("href");
+    const normalizedHref = (href || "").split("#")[0];
+    link.classList.remove("active");
+    if (normalizedHref === currentPath) {
+      link.classList.add("active");
+    }
+  });
+};
+
+const initAnalyzedMatchesCounter = () => {
+  const counter = document.querySelector("[data-ai-counter]");
+  if (!counter) return;
+
+  const base = 18420;
+  let current = base;
+  counter.textContent = current.toLocaleString();
+
+  window.setInterval(() => {
+    current += Math.floor(Math.random() * 4) + 1;
+    counter.textContent = current.toLocaleString();
+  }, 2400);
+};
+
 const storageKeys = {
   users: "Play PortalUsers",
   session: "Play PortalSession",
@@ -277,6 +303,8 @@ const updateNavForAuth = (sessionUser) => {
     if (existingProfile) existingProfile.remove();
     if (existingLogout) existingLogout.remove();
   }
+
+  markActiveNavLink();
 };
 
 const buildSessionUser = (user) => {
@@ -351,6 +379,8 @@ const initAuth = async () => {
   const requiresAuth = document.body && document.body.dataset.requiresAuth === "true";
   const isProfile = document.body && document.body.dataset.page === "profile";
 
+  markActiveNavLink();
+  initAnalyzedMatchesCounter();
   showAuthCard(getAuthTargetFromHash());
   window.addEventListener("hashchange", () => {
     showAuthCard(getAuthTargetFromHash());
@@ -815,39 +845,6 @@ const initAuth = async () => {
 
 initAuth();
 
-const reels = Array.from(document.querySelectorAll(".reel-full"));
-
-if (reels.length > 0) {
-  let isSnapping = false;
-  window.addEventListener(
-    "wheel",
-    (event) => {
-      if (isSnapping) return;
-      if (Math.abs(event.deltaY) < 4) return;
-
-      const currentIndex = reels.findIndex((reel) => {
-        const rect = reel.getBoundingClientRect();
-        return rect.top >= -10 && rect.top < window.innerHeight * 0.5;
-      });
-
-      const direction = event.deltaY > 0 ? 1 : -1;
-      const nextIndex =
-        currentIndex === -1
-          ? 0
-          : Math.max(0, Math.min(reels.length - 1, currentIndex + direction));
-
-      if (nextIndex === currentIndex) return;
-
-      isSnapping = true;
-      reels[nextIndex].scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(() => {
-        isSnapping = false;
-      }, 650);
-    },
-    { passive: true }
-  );
-}
-
 const initBlogFilters = () => {
   const filterWrap = document.querySelector(".blog-filters");
   const reelSearchInput = document.querySelector("[data-reel-search]");
@@ -870,7 +867,18 @@ const initBlogFilters = () => {
   let activeCategory = "all";
   let reelSearchKeywords = [];
   let blogSearchKeywords = [];
-  let searchTimer = null;
+  const debounce = (fn, delay = 300) => {
+    let timer = null;
+    return (...args) => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  };
+
+  let reelSortToken = "";
+  let blogSortToken = "";
+  let reelSortMode = "default";
+  let blogSortMode = "default";
 
   const ensureReelMetadata = (card) => {
     if (!card.classList.contains("reel-card")) return;
@@ -937,6 +945,8 @@ const initBlogFilters = () => {
   };
 
   const showCard = (card) => {
+    if (card.dataset.hidden !== "true") return;
+    card.dataset.hidden = "false";
     card.style.display = "";
     requestAnimationFrame(() => {
       card.classList.remove("is-hidden");
@@ -944,18 +954,25 @@ const initBlogFilters = () => {
   };
 
   const hideCard = (card) => {
+    if (card.dataset.hidden === "true") return;
+    card.dataset.hidden = "true";
     card.classList.add("is-hidden");
-    setTimeout(() => {
-      if (card.classList.contains("is-hidden")) {
+    const finalize = () => {
+      if (card.dataset.hidden === "true") {
         card.style.display = "none";
       }
-    }, 180);
+    };
+    const onEnd = () => finalize();
+    card.addEventListener("transitionend", onEnd, { once: true });
+    setTimeout(finalize, 220);
   };
 
   const applyFilters = () => {
     const reelScores = new Map();
     const blogScores = new Map();
     let visibleBlogs = 0;
+    const toShow = [];
+    const toHide = [];
 
     cards.forEach((card) => {
       const categories = getCategories(card);
@@ -974,33 +991,54 @@ const initBlogFilters = () => {
         if (matches) visibleBlogs += 1;
       }
 
-      if (matches) showCard(card);
-      else hideCard(card);
+      if (matches) toShow.push(card);
+      else toHide.push(card);
+    });
+
+    requestAnimationFrame(() => {
+      toShow.forEach(showCard);
+      toHide.forEach(hideCard);
     });
 
     if (reelFeed && reelCards.length > 0) {
       if (reelSearchKeywords.length === 0) {
-        reelOrder.forEach((card) => reelFeed.appendChild(card));
+        if (reelSortMode !== "default") {
+          reelOrder.forEach((card) => reelFeed.appendChild(card));
+          reelSortMode = "default";
+        }
       } else {
-        const sorted = reelCards
-          .slice()
-          .sort((a, b) => (reelScores.get(b) || 0) - (reelScores.get(a) || 0));
-        sorted.forEach((card) => reelFeed.appendChild(card));
+        const token = reelSearchKeywords.join("|");
+        if (reelSortMode !== "search" || token !== reelSortToken) {
+          const sorted = reelCards
+            .slice()
+            .sort((a, b) => (reelScores.get(b) || 0) - (reelScores.get(a) || 0));
+          sorted.forEach((card) => reelFeed.appendChild(card));
+          reelSortMode = "search";
+          reelSortToken = token;
+        }
       }
     }
 
     if (blogGrid && blogCards.length > 0) {
       if (blogSearchKeywords.length === 0) {
-        blogOrder.forEach((card) => blogGrid.appendChild(card));
+        if (blogSortMode !== "default") {
+          blogOrder.forEach((card) => blogGrid.appendChild(card));
+          blogSortMode = "default";
+        }
       } else {
-        const sorted = blogCards
-          .slice()
-          .sort((a, b) => {
-            const scoreDiff = (blogScores.get(b) || 0) - (blogScores.get(a) || 0);
-            if (scoreDiff !== 0) return scoreDiff;
-            return (blogIndex.get(a) || 0) - (blogIndex.get(b) || 0);
-          });
-        sorted.forEach((card) => blogGrid.appendChild(card));
+        const token = blogSearchKeywords.join("|");
+        if (blogSortMode !== "search" || token !== blogSortToken) {
+          const sorted = blogCards
+            .slice()
+            .sort((a, b) => {
+              const scoreDiff = (blogScores.get(b) || 0) - (blogScores.get(a) || 0);
+              if (scoreDiff !== 0) return scoreDiff;
+              return (blogIndex.get(a) || 0) - (blogIndex.get(b) || 0);
+            });
+          sorted.forEach((card) => blogGrid.appendChild(card));
+          blogSortMode = "search";
+          blogSortToken = token;
+        }
       }
     }
 
@@ -1023,13 +1061,11 @@ const initBlogFilters = () => {
   }
 
   if (reelSearchInput) {
-    reelSearchInput.addEventListener("input", () => {
-      if (searchTimer) clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        reelSearchKeywords = getKeywords(reelSearchInput.value || "");
-        applyFilters();
-      }, 300);
-    });
+    const handleReelSearch = debounce(() => {
+      reelSearchKeywords = getKeywords(reelSearchInput.value || "");
+      applyFilters();
+    }, 300);
+    reelSearchInput.addEventListener("input", handleReelSearch);
   }
 
   if (blogSearchInput) {
@@ -1037,16 +1073,12 @@ const initBlogFilters = () => {
       blogSearchKeywords = getKeywords(blogSearchInput.value || "");
       applyFilters();
     };
+    const handleBlogSearch = debounce(runBlogSearch, 300);
 
-    blogSearchInput.addEventListener("input", () => {
-      if (searchTimer) clearTimeout(searchTimer);
-      searchTimer = setTimeout(runBlogSearch, 300);
-    });
-
+    blogSearchInput.addEventListener("input", handleBlogSearch);
     blogSearchInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        if (searchTimer) clearTimeout(searchTimer);
         runBlogSearch();
       }
     });
@@ -1054,7 +1086,6 @@ const initBlogFilters = () => {
     if (blogSearchButton) {
       blogSearchButton.addEventListener("click", (event) => {
         event.preventDefault();
-        if (searchTimer) clearTimeout(searchTimer);
         runBlogSearch();
       });
     }
